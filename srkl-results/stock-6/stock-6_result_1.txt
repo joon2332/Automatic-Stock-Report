@@ -1,0 +1,60 @@
+Experiment all_results for
+ datafile = ../stock-share/stock-6/stock-6.mat
+
+ Running experiment:
+description = ABCD for stock 6,
+data_dir = ../stock-share/stock-6/,
+max_depth = 5,
+random_order = False,
+k = 1,
+debug = False,
+local_computation = False,
+n_rand = 9,
+sd = 2,
+jitter_sd = 0.1,
+max_jobs = 400,
+verbose = True,
+make_predictions = False,
+skip_complete = True,
+results_dir = ../stock-share/stock-6/,
+iters = 250,
+base_kernels = SE,Per,Lin,Const,Noise,
+additive_form = False,
+mean = ff.MeanZero(),
+kernel = ff.NoiseKernel(),
+lik = ff.LikGauss(sf=-np.Inf),
+verbose_results = False,
+random_seed = 1,
+period_heuristic = 3,
+max_period_heuristic = 5,
+subset = True,
+subset_size = 250,
+full_iters = 10,
+bundle_size = 5,
+search_operators = [('A', ('+', 'A', 'B'), {'A': 'kernel', 'B': 'base'}), ('A', ('*', 'A', 'B'), {'A': 'kernel', 'B': 'base-not-const'}), ('A', ('*-const', 'A', 'B'), {'A': 'kernel', 'B': 'base-not-const'}), ('A', 'B', {'A': 'kernel', 'B': 'base'}), ('A', ('CP', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PCP1', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PCP2', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('CW', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PCW', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('B', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('BL', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PB', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PBP1', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PBP2', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('None',), {'A': 'kernel'})],
+score = bic,
+period_heuristic_type = min,
+stopping_criteria = [],
+improvement_tolerance = 0.1,
+ 
+
+
+%%%%% Level 0 %%%%%
+
+GPModel(mean=None, kernel=SumKernel(operands=[NoiseKernel(sf=-2.30160637385), SqExpKernel(dimension=0, lengthscale=-3.0955820435, sf=1.61396426186)]), likelihood=None, nll=1369.25947586, ndata=129, , cov={@covSum, {{@covNoise}, {@covSEiso}}})
+
+%%%%% Level 1 %%%%%
+
+GPModel(mean=None, kernel=SumKernel(operands=[NoiseKernel(sf=-1.95833332971), ConstKernel(sf=3.81041930272), SqExpKernel(dimension=0, lengthscale=-3.97425812752, sf=-0.131312922872)]), likelihood=None, nll=1238.6599141, ndata=129, , cov={@covSum, {{@covNoise}, {@covConst}, {@covSEiso}}})
+
+%%%%% Level 2 %%%%%
+
+GPModel(mean=None, kernel=ProductKernel(operands=[SqExpKernel(dimension=0, lengthscale=0.0775947315545, sf=-0.869318086229), SumKernel(operands=[NoiseKernel(sf=-1.63610330943), ConstKernel(sf=3.17498663207), SqExpKernel(dimension=0, lengthscale=-4.66646704063, sf=-0.455917675188)])]), likelihood=None, nll=1083.70034041, ndata=129, , cov={@covProd, {{@covSEiso}, {@covSum, {{@covNoise}, {@covConst}, {@covSEiso}}}}})
+
+%%%%% Level 3 %%%%%
+
+GPModel(mean=None, kernel=ProductKernel(operands=[SqExpKernel(dimension=0, lengthscale=0.781831789367, sf=-1.16521418818), SumKernel(operands=[NoiseKernel(sf=-1.86165295492), ConstKernel(sf=2.54026117799), SqExpKernel(dimension=0, lengthscale=-3.41785687898, sf=-0.212155188016), SqExpKernel(dimension=0, lengthscale=-5.13961464344, sf=-0.944840695553)])]), likelihood=None, nll=1018.02372897, ndata=129, , cov={@covProd, {{@covSEiso}, {@covSum, {{@covNoise}, {@covConst}, {@covSEiso}, {@covSEiso}}}}})
+
+%%%%% Level 4 %%%%%
+
+GPModel(mean=None, kernel=ProductKernel(operands=[SqExpKernel(dimension=0, lengthscale=1.46707917655, sf=-2.26232189719), SumKernel(operands=[NoiseKernel(sf=-0.653469723551), ConstKernel(sf=3.65827234039), SqExpKernel(dimension=0, lengthscale=-3.27136722808, sf=1.07996885085), SqExpKernel(dimension=0, lengthscale=-4.93302069186, sf=0.20084793701)])]), likelihood=None, nll=1008.18181921, ndata=129, , cov={@covProd, {{@covSEiso}, {@covSum, {{@covNoise}, {@covConst}, {@covSEiso}, {@covSEiso}}}}})
