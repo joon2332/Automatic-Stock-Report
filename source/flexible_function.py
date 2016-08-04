@@ -286,6 +286,10 @@ class Kernel(FunctionWrapper):
             if len(new_ops) == 0:
                 return NoneKernel()
             elif len(new_ops) == 1:
+                if (self.arity == 1):
+                    canon = self.copy()
+                    canon.operands = new_ops
+                    return canon
                 return new_ops[0]
             else:
                 canon = self.copy()
@@ -639,7 +643,7 @@ class GPModel:
     """Model class - keeps track of a mean function, kernel, likelihood function,
        and optionally a score."""
 
-    def __init__(self, mean=None, kernel=None, likelihood=None, nll=None, ndata=None):
+    def __init__(self, mean=None, kernel=None, likelihood=None, nll=None, ndata=None, gpml_result = None):
         assert isinstance(mean, MeanFunction) or (mean is None)
         assert isinstance(kernel, Kernel) or (kernel is None)
         assert isinstance(likelihood, Likelihood) or (likelihood is None)
@@ -648,13 +652,14 @@ class GPModel:
         self.likelihood = likelihood
         self.nll = nll
         self.ndata = ndata
+        self.gpml_result = gpml_result
             
     def __hash__(self): return hash(self.__repr__())
 
     def __repr__(self):
         # Remember all the various scoring criteria
-        return 'GPModel(mean=%s, kernel=%s, likelihood=%s, nll=%s, ndata=%s)' % \
-               (self.mean.__repr__(), self.kernel.__repr__(), self.likelihood.__repr__(), self.nll, self.ndata)
+        return 'GPModel(mean=%s, kernel=%s, likelihood=%s, nll=%s, ndata=%s, cov=%s)' % \
+               (self.mean.__repr__(), self.kernel.__repr__(), self.likelihood.__repr__(), self.nll, self.ndata, self.kernel.get_gpml_expression(1))
 
     def __cmp__(self, other):
         if cmp(self.__class__, other.__class__):
@@ -669,9 +674,12 @@ class GPModel:
         return GPModel(mean=m, kernel=k, likelihood=l, nll=self.nll, ndata=self.ndata)
 
     def pretty_print(self):
-        return 'GPModel(mean=%s, kernel=%s, likelihood=%s)' % \
-                (self.mean.pretty_print(), self.kernel.pretty_print(), self.likelihood.pretty_print())
-        
+        # return 'GPModel(mean=%s, kernel=%s, likelihood=%s)' % \
+        #         (self.mean.pretty_print(), self.kernel.pretty_print(), self.likelihood.pretty_print())
+
+        return 'GPModel(mean=%s, kernel=%s, likelihood=%s, cov=%s)' % \
+                    (None, self.kernel.pretty_print(), None, self.kernel.get_gpml_expression(1))
+
     def out_of_bounds(self, constraints):
         return any([self.mean.out_of_bounds(constraints), \
                     self.kernel.out_of_bounds(constraints), \
@@ -706,20 +714,39 @@ class GPModel:
         model.mean.load_param_vector(output.mean_hypers)
         model.kernel.load_param_vector(output.kernel_hypers)
         model.likelihood.load_param_vector(output.lik_hypers)
-        return GPModel(mean=model.mean, kernel=model.kernel, likelihood=model.likelihood, nll=output.nll, ndata=ndata) 
+        return GPModel(mean=model.mean, kernel=model.kernel, likelihood=model.likelihood, nll=output.nll, ndata=ndata)
+
+    @staticmethod
+    def my_from_matlab_output(output, model, ndata):
+        # model.mean.load_param_vector(output.mean_hypers)
+        model.kernel.load_param_vector(output.kernel_hypers)
+        # model.likelihood.load_param_vector(output.lik_hypers)
+        return GPModel(mean=None, kernel=model.kernel, likelihood=None, nll=output.nll, ndata=ndata, gpml_result = output.gpml_result)
+
 
     def simplified(self):
+        # ADDED
+        # simple = self.copy()
+        # simple.mean = simple.mean.simplified()
+        # simple.kernel = simple.kernel.simplified()
+        # simple.likelihood = simple.likelihood.simplified()
+
         simple = self.copy()
-        simple.mean = simple.mean.simplified()
+        # simple.mean = None
         simple.kernel = simple.kernel.simplified()
-        simple.likelihood = simple.likelihood.simplified()
+        # simple.likelihood = None
         return simple
 
     def canonical(self):
+        # canon = self.copy()
+        # canon.mean = canon.mean.canonical()
+        # canon.kernel = canon.kernel.canonical()
+        # canon.likelihood = canon.likelihood.canonical()
+
         canon = self.copy()
-        canon.mean = canon.mean.canonical()
+        # canon.mean = None
         canon.kernel = canon.kernel.canonical()
-        canon.likelihood = canon.likelihood.canonical()
+        # canon.likelihood = None
         return canon
 
     def additive_form(self):
@@ -739,7 +766,7 @@ class GPModel:
             model_list.append(GPModel(mean=MeanZero(), kernel=a_kernel, likelihood=LikGauss(sf=-np.Inf)))
         for a_likelihood in likelihood_list:
             model_list.append(GPModel(mean=MeanZero(), kernel=ZeroKernel(), likelihood=a_likelihood))
-        null_model = GPModel(ean=MeanZero(), kernel=ZeroKernel(), likelihood=LikGauss(sf=-np.Inf))
+        null_model = GPModel(mean=MeanZero(), kernel=ZeroKernel(), likelihood=LikGauss(sf=-np.Inf))
         model_list = [model for model in model_list if not model == null_model]
         return model_list
 
@@ -1680,6 +1707,328 @@ class ProductKernel(Kernel):
     def out_of_bounds(self, constraints):
         return any([o.out_of_bounds(constraints=constraints) for o in self.operands])
 
+class PartialChangePointKernel1(Kernel):
+
+    def __init__(self, dimension=None, location=None, steepness=None, operands=None):
+        assert len(operands) == 1
+        self.dimension = dimension
+        self.location = location
+        self.steepness = steepness
+        if operands is None:
+            self.operands = []
+        else:
+            self.operands  = operands
+
+    @property
+    def is_stationary(self): return False
+
+    @property
+    def sf(self):
+        raise RuntimeError('Cannot ask for scale factor of non-stationary kernel')
+
+    @property
+    def arity(self): return 1
+
+    @property
+    def gpml_function(self): return '{@covPartialChangePointMultiD}'
+
+    @property
+    def id(self): return 'PCP1'
+
+    @property
+    def param_vector(self):
+        return np.concatenate([np.array([self.location, self.steepness])] + [o.param_vector for o in self.operands])
+
+    @property
+    def latex(self):
+        return '{\\sc PCP1}\\left( ' + ' , '.join([o.latex for o in self.operands]) + ' \\right)'
+
+    @property
+    def syntax(self):
+        return colored('PCP1( ', self.depth) + \
+                self.operands[0].syntax + \
+                colored(' )', self.depth)
+    @property
+    def is_operator(self): return True
+
+    @property
+    def is_abelian(self): return False
+
+    @property
+    def effective_params(self):
+        return 2 + sum([o.effective_params for o in self.operands])
+
+    @property
+    def depth(self):
+        return max([o.depth for o in self.operands]) + 1
+
+    # Methods
+
+    def copy(self):
+        return PartialChangePointKernel1(dimension=self.dimension, location=self.location, steepness=self.steepness, operands=[o.copy() for o in self.operands])
+
+    def initialise_params(self, sd=1, data_shape=None):
+        if self.location is None:
+            # Location uniform in data range
+            self.location = np.random.uniform(data_shape['x_min'][self.dimension], data_shape['x_max'][self.dimension])
+        if self.steepness is None:
+            # Set steepness with inverse input scale
+            self.steepness = np.random.normal(loc=3.3-np.log((data_shape['x_max'][self.dimension] - data_shape['x_min'][self.dimension])), scale=1)
+        for o in self.operands:
+            o.initialise_params(sd=sd, data_shape=data_shape)
+
+    def __repr__(self):
+        return 'PartialChangePointKernel1(dimension=%s, location=%s, steepness=%s, operands=%s)' % \
+                (self.dimension, self.location, self.steepness, '[ ' + ', '.join([o.__repr__() for o in self.operands]) + ' ]')
+
+    def pretty_print(self):
+        return colored('PCP1(dim=%s, loc=%s, steep=%s, ' % \
+               (self.dimension, format_if_possible('%1.1f', self.location), format_if_possible('%1.1f', self.steepness)), self.depth) + \
+                self.operands[0].pretty_print() + \
+                colored(')', self.depth)
+
+    def load_param_vector(self, params):
+        self.location = params[0]
+        self.steepness = params[1]
+        start = 2
+        for o in self.operands:
+            end = start + o.num_params
+            o.load_param_vector(params[start:end])
+            start = end
+
+    def get_gpml_expression(self, dimensions):
+        #return '{@covChangePointMultiD, %s, {%s}}' % (self.dimension + 1, ', '.join(o.get_gpml_expression(dimensions=dimensions) for o in self.operands))
+        return '{@covPartialChangePointMultiD, {%s, %s}}' % (self.dimension + 1, ', '.join(o.get_gpml_expression(dimensions=dimensions) for o in self.operands))
+
+    def multiply_by_const(self, sf):
+        for o in self.operands:
+            o.multiply_by_const(sf=sf)
+
+    def out_of_bounds(self, constraints):
+        return (self.location < constraints['x_min'][self.dimension]) or \
+               (self.location > constraints['x_max'][self.dimension]) or \
+               (self.steepness < -np.log((constraints['x_max'][self.dimension] -constraints['x_min'][self.dimension])) + 2.3) or \
+               (any([o.out_of_bounds(constraints) for o in self.operands]))
+
+
+
+class PartialChangePointKernel2(Kernel):
+
+    def __init__(self, dimension=None, location=None, steepness=None, operands=None):
+        assert len(operands) == 1
+        self.dimension = dimension
+        self.location = location
+        self.steepness = steepness
+        if operands is None:
+            self.operands = []
+        else:
+            self.operands  = operands
+
+    @property
+    def is_stationary(self): return False
+
+    @property
+    def sf(self):
+        raise RuntimeError('Cannot ask for scale factor of non-stationary kernel')
+
+    @property
+    def arity(self): return 1
+
+    @property
+    def gpml_function(self): return '{@covPartialChangePointMultiD2}'
+
+    @property
+    def id(self): return 'PCP2'
+
+    @property
+    def param_vector(self):
+        return np.concatenate([np.array([self.location, self.steepness])] + [o.param_vector for o in self.operands])
+
+    @property
+    def latex(self):
+        return '{\\sc PCP2}\\left( ' + ' , '.join([o.latex for o in self.operands]) + ' \\right)'
+
+    @property
+    def syntax(self):
+        return colored('PCP2( ', self.depth) + \
+                self.operands[0].syntax + \
+                colored(' )', self.depth)
+    @property
+    def is_operator(self): return True
+
+    @property
+    def is_abelian(self): return False
+
+    @property
+    def effective_params(self):
+        return 2 + sum([o.effective_params for o in self.operands])
+
+    @property
+    def depth(self):
+        return max([o.depth for o in self.operands]) + 1
+
+    # Methods
+
+    def copy(self):
+        return PartialChangePointKernel2(dimension=self.dimension, location=self.location, steepness=self.steepness, operands=[o.copy() for o in self.operands])
+
+    def initialise_params(self, sd=1, data_shape=None):
+        if self.location is None:
+            # Location uniform in data range
+            self.location = np.random.uniform(data_shape['x_min'][self.dimension], data_shape['x_max'][self.dimension])
+        if self.steepness is None:
+            # Set steepness with inverse input scale
+            self.steepness = np.random.normal(loc=3.3-np.log((data_shape['x_max'][self.dimension] - data_shape['x_min'][self.dimension])), scale=1)
+        for o in self.operands:
+            o.initialise_params(sd=sd, data_shape=data_shape)
+
+    def __repr__(self):
+        return 'PartialChangePointKernel2(dimension=%s, location=%s, steepness=%s, operands=%s)' % \
+                (self.dimension, self.location, self.steepness, '[ ' + ', '.join([o.__repr__() for o in self.operands]) + ' ]')
+
+    def pretty_print(self):
+        return colored('PCP2(dim=%s, loc=%s, steep=%s, ' % \
+               (self.dimension, format_if_possible('%1.1f', self.location), format_if_possible('%1.1f', self.steepness)), self.depth) + \
+                self.operands[0].pretty_print() + \
+                colored(')', self.depth)
+
+    def load_param_vector(self, params):
+        self.location = params[0]
+        self.steepness = params[1]
+        start = 2
+        for o in self.operands:
+            end = start + o.num_params
+            o.load_param_vector(params[start:end])
+            start = end
+
+    def get_gpml_expression(self, dimensions):
+        #return '{@covChangePointMultiD, %s, {%s}}' % (self.dimension + 1, ', '.join(o.get_gpml_expression(dimensions=dimensions) for o in self.operands))
+        return '{@covPartialChangePointMultiD2, {%s, %s}}' % (self.dimension + 1, ', '.join(o.get_gpml_expression(dimensions=dimensions) for o in self.operands))
+
+    def multiply_by_const(self, sf):
+        for o in self.operands:
+            o.multiply_by_const(sf=sf)
+
+    def out_of_bounds(self, constraints):
+        return (self.location < constraints['x_min'][self.dimension]) or \
+               (self.location > constraints['x_max'][self.dimension]) or \
+               (self.steepness < -np.log((constraints['x_max'][self.dimension] -constraints['x_min'][self.dimension])) + 2.3) or \
+               (any([o.out_of_bounds(constraints) for o in self.operands]))
+
+
+class PartialChangeWindowKernel(Kernel):
+    def __init__(self, dimension=None, location=None, steepness=None, width=None, operands=None):
+        assert len(operands) == 1
+        self.dimension = dimension
+        self.location = location
+        self.steepness = steepness
+        self.width = width
+        if operands is None:
+            self.operands = []
+        else:
+            self.operands  = operands
+
+    # Properties
+
+    @property
+    def is_stationary(self): return False
+
+    @property
+    def sf(self):
+        raise RuntimeError('Cannot ask for scale factor of change window kernel')
+
+    @property
+    def arity(self): return 1
+
+    @property
+    def gpml_function(self): return '{@covPartialChangeWindowMultiD}'
+
+    @property
+    def id(self): return 'PCW'
+
+    @property
+    def param_vector(self):
+        return np.concatenate([np.array([self.location, self.steepness, self.width])] + [o.param_vector for o in self.operands])
+
+    @property
+    def latex(self):
+        return '{\\sc PCW}\\left( ' + ' , '.join([o.latex for o in self.operands]) + ' \\right)'
+
+    @property
+    def syntax(self):
+        return colored('PCW( ', self.depth) + \
+                self.operands[0].syntax + \
+                colored(' )', self.depth)
+
+    @property
+    def is_operator(self): return True
+
+    @property
+    def is_abelian(self): return False
+
+    @property
+    def effective_params(self):
+        return 3 + sum([o.effective_params for o in self.operands])
+
+    @property
+    def depth(self):
+        return max([o.depth for o in self.operands]) + 1
+
+    # Methods
+
+    def copy(self):
+        return PartialChangeWindowKernel(dimension=self.dimension, location=self.location, steepness=self.steepness, width=self.width, operands=[o.copy() for o in self.operands])
+
+    def initialise_params(self, sd=1, data_shape=None):
+        if self.location is None:
+            # Location uniform in data range
+            self.location = np.random.uniform(data_shape['x_min'][self.dimension], data_shape['x_max'][self.dimension])
+        if self.steepness is None:
+            # Set steepness with inverse input scale
+            self.steepness = np.random.normal(loc=3.3-np.log((data_shape['x_max'][self.dimension] - data_shape['x_min'][self.dimension])), scale=1)
+        if self.width is None:
+            # Set width with input scale - but expecting small widths
+            self.width = np.random.normal(loc=np.log(0.1*(data_shape['x_max'][self.dimension] - data_shape['x_min'][self.dimension])), scale=1)
+        for o in self.operands:
+            o.initialise_params(sd=sd, data_shape=data_shape)
+
+    def __repr__(self):
+        return 'PartialChangeWindowKernel(dimension=%s, location=%s, steepness=%s, width=%s, operands=%s)' % \
+                (self.dimension, self.location, self.steepness, self.width, '[ ' + ', '.join([o.__repr__() for o in self.operands]) + ' ]')
+
+    def pretty_print(self):
+        return colored('PCW(dim=%s, loc=%s, steep=%s, width=%s, ' % \
+               (self.dimension, format_if_possible('%1.1f', self.location), format_if_possible('%1.1f', self.steepness), format_if_possible('%1.1f', self.width)), self.depth) + \
+                self.operands[0].pretty_print() + \
+                colored(')', self.depth)
+
+    def load_param_vector(self, params):
+        self.location = params[0]
+        self.steepness = params[1]
+        self.width = params[2]
+        start = 3
+        for o in self.operands:
+            end = start + o.num_params
+            o.load_param_vector(params[start:end])
+            start = end
+
+    def get_gpml_expression(self, dimensions):
+        #return '{@covChangeWindowMultiD, %s, {%s}}' % (self.dimension + 1, ', '.join(o.get_gpml_expression(dimensions=dimensions) for o in self.operands))
+        return '{@covPartialChangeWindowMultiD, {%s, %s}}' % (self.dimension + 1, ', '.join(o.get_gpml_expression(dimensions=dimensions) for o in self.operands))
+        #return '{@covChangeBurstTanh, {%s}}' % (', '.join(o.get_gpml_expression(dimensions=dimensions) for o in self.operands))
+
+    def multiply_by_const(self, sf):
+        for o in self.operands:
+            o.multiply_by_const(sf=sf)
+
+    def out_of_bounds(self, constraints):
+        return (self.location - np.exp(self.width)/2 < constraints['x_min'][self.dimension] + 0.05 * (constraints['x_max'][self.dimension] - constraints['x_min'][self.dimension])) or \
+               (self.location + np.exp(self.width)/2 > constraints['x_max'][self.dimension] - 0.05 * (constraints['x_max'][self.dimension] - constraints['x_min'][self.dimension])) or \
+               (self.width > np.log(0.25*(constraints['x_max'][self.dimension] - constraints['x_min'][self.dimension]))) or \
+               (self.steepness < -np.log((constraints['x_max'][self.dimension] - constraints['x_min'][self.dimension])) + 2.3) or \
+               (any([o.out_of_bounds(constraints) for o in self.operands]))
+
+
 class ChangePointKernel(Kernel):
     def __init__(self, dimension=None, location=None, steepness=None, operands=None):
         assert len(operands) == 2
@@ -2113,14 +2462,24 @@ def add_random_restarts_k(kernels, n_rand=1, sd=4, data_shape=None):
 def add_random_restarts(models, n_rand=1, sd=4, data_shape=None):
     new_models = []
     for a_model in models:
-        for (kernel, likelihood, mean) in zip(add_random_restarts_single_k(a_model.kernel, n_rand=n_rand, sd=sd, data_shape=data_shape), \
-                                              add_random_restarts_single_l(a_model.likelihood, n_rand=n_rand, sd=sd, data_shape=data_shape), \
-                                              add_random_restarts_single_m(a_model.mean, n_rand=n_rand, sd=sd, data_shape=data_shape)):
+        arrs = add_random_restarts_single_k(a_model.kernel, n_rand=n_rand, sd=sd, data_shape=data_shape)
+        for kernel in arrs:
             new_model = a_model.copy()
             new_model.kernel = kernel
-            new_model.likelihood = likelihood
-            new_model.mean = mean
+            new_model.likelihood = None
+            new_model.mean = None
             new_models.append(new_model)
+        # ADDED:
+        # for (kernel, likelihood, mean) in zip(add_random_restarts_single_k(a_model.kernel, n_rand=n_rand, sd=sd, data_shape=data_shape), \
+        #                                       add_random_restarts_single_l(a_model.likelihood, n_rand=n_rand, sd=sd, data_shape=data_shape), \
+        #                                       add_random_restarts_single_m(a_model.mean, n_rand=n_rand, sd=sd, data_shape=data_shape)):
+        #     new_model = a_model.copy()
+        #     new_model.kernel = kernel
+        #     new_model.likelihood = likelihood
+        #     new_model.mean = mean
+        #     new_models.append(new_model)
+
+
     return new_models 
 
 def add_jitter_k(kernels, sd=0.1):    
@@ -2248,3 +2607,9 @@ def add_jitter(models, sd=0.1):
 #     def out_of_bounds(self, constraints):
 #         return (self.period < constraints['min_period']) or \
 #                (self.period > np.log(0.5*(constraints['input_max'] - constraints['input_min']))) # Need to observe more than 2 periods to declare periodicity
+
+
+# pcp = ChangePointKernel(dimension=1, location=10, steepness=10, operands=[ConstKernel(5), ConstKernel(5)])
+#
+# a = pcp.canonical()
+# a
