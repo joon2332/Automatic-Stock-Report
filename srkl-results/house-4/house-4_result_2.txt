@@ -1,0 +1,60 @@
+Experiment all_results for
+ datafile = ../stock-share/house-4/house-4.mat
+
+ Running experiment:
+description = ABCD for house 4,
+data_dir = ../stock-share/house-4/,
+max_depth = 6,
+random_order = False,
+k = 1,
+debug = False,
+local_computation = False,
+n_rand = 9,
+sd = 2,
+jitter_sd = 0.1,
+max_jobs = 400,
+verbose = True,
+make_predictions = False,
+skip_complete = True,
+results_dir = ../stock-share/house-4/,
+iters = 250,
+base_kernels = SE,Per,Lin,Const,Noise,
+additive_form = False,
+mean = ff.MeanZero(),
+kernel = ff.NoiseKernel(),
+lik = ff.LikGauss(sf=-np.Inf),
+verbose_results = False,
+random_seed = 1,
+period_heuristic = 3,
+max_period_heuristic = 5,
+subset = True,
+subset_size = 250,
+full_iters = 10,
+bundle_size = 5,
+search_operators = [('A', ('+', 'A', 'B'), {'A': 'kernel', 'B': 'base'}), ('A', ('*', 'A', 'B'), {'A': 'kernel', 'B': 'base-not-const'}), ('A', ('*-const', 'A', 'B'), {'A': 'kernel', 'B': 'base-not-const'}), ('A', 'B', {'A': 'kernel', 'B': 'base'}), ('A', ('CP', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PCP1', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PCP2', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('CW', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PCW', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('B', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('BL', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PB', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PBP1', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('PBP2', 'd', 'A'), {'A': 'kernel', 'd': 'dimension'}), ('A', ('None',), {'A': 'kernel'})],
+score = bic,
+period_heuristic_type = min,
+stopping_criteria = [],
+improvement_tolerance = 0.1,
+ 
+
+
+%%%%% Level 0 %%%%%
+
+GPModel(mean=None, kernel=NoiseKernel(sf=0.019076888199), likelihood=None, nll=2478.94766925, ndata=120, cov={@covNoise})
+
+%%%%% Level 1 %%%%%
+
+GPModel(mean=None, kernel=SumKernel(operands=[PeriodicKernel(dimension=0, lengthscale=0.801706271456, period=-7.78447410505, sf=6.50389025135), NoiseKernel(sf=0.727658489552)]), likelihood=None, nll=2384.15053215, ndata=120, cov={@covSum, {{@covPeriodicNoDC}, {@covNoise}}})
+
+%%%%% Level 2 %%%%%
+
+GPModel(mean=None, kernel=SumKernel(operands=[PeriodicKernel(dimension=0, lengthscale=-2.97709538178, period=-3.87013402698, sf=-0.0105196611417), PeriodicKernel(dimension=0, lengthscale=0.738619733966, period=-8.02224721599, sf=6.60103544312)]), likelihood=None, nll=1350.36681455, ndata=120, cov={@covSum, {{@covPeriodicNoDC}, {@covPeriodicNoDC}}})
+
+%%%%% Level 3 %%%%%
+
+GPModel(mean=None, kernel=SumKernel(operands=[PeriodicKernel(dimension=0, lengthscale=-2.97709538178, period=-3.87013402698, sf=-0.0105196611417), PeriodicKernel(dimension=0, lengthscale=0.738619733966, period=-8.02224721599, sf=6.60103544312)]), likelihood=None, nll=1350.36681455, ndata=120, cov={@covSum, {{@covPeriodicNoDC}, {@covPeriodicNoDC}}})
+
+%%%%% Level 4 %%%%%
+
+GPModel(mean=None, kernel=SumKernel(operands=[PeriodicKernel(dimension=0, lengthscale=-2.97709538178, period=-3.87013402698, sf=-0.0105196611417), PeriodicKernel(dimension=0, lengthscale=0.738619733966, period=-8.02224721599, sf=6.60103544312)]), likelihood=None, nll=1350.36681455, ndata=120, cov={@covSum, {{@covPeriodicNoDC}, {@covPeriodicNoDC}}})

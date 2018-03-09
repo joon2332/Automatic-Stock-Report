@@ -100,6 +100,21 @@ def polish_to_kernel(polish_expr):
             return ff.ChangeWindowKernel(dimension=polish_expr[1], operands=[base_kernel.copy(), ff.ConstKernel()])
         elif polish_expr[0] == 'None':
             return ff.NoneKernel()
+        elif polish_expr[0] == 'PCP1':
+            base_kernel = polish_to_kernel(polish_expr[2])
+            return ff.PartialChangePointKernel1(dimension=polish_expr[1], operands=[base_kernel.copy()])
+        elif polish_expr[0] == 'PCP2':
+            base_kernel = polish_to_kernel(polish_expr[2])
+            return ff.PartialChangePointKernel2(dimension=polish_expr[1], operands=[base_kernel.copy()])
+        elif polish_expr[0] == 'PCW':
+            base_kernel = polish_to_kernel(polish_expr[2])
+            return ff.PartialChangeWindowKernel(dimension=polish_expr[1], operands=[base_kernel.copy()])
+        elif polish_expr[0] == 'PB':
+            return ff.PartialChangeWindowKernel(dimension=polish_expr[1], operands=[ff.ConstKernel()])
+        elif polish_expr[0] == 'PBP1':
+            return ff.PartialChangePointKernel1(dimension=polish_expr[1], operands=[ff.ConstKernel()])
+        elif polish_expr[0] == 'PBP2':
+            return ff.PartialChangePointKernel2(dimension=polish_expr[1], operands=[ff.ConstKernel()])
         else:
             raise RuntimeError('Unknown operator: %s' % polish_expr[0])
     else:
@@ -130,6 +145,14 @@ def expand(kernel, grammar):
     result = expand_single_tree(kernel, grammar)
     if not kernel.is_operator:
         pass
+    elif kernel.arity == 1:
+        for i, op in enumerate(kernel.operands):
+            for e in expand(op, grammar):
+                new_ops = kernel.operands[:i] + [e] + kernel.operands[i+1:]
+                new_ops = [op.copy() for op in new_ops]
+                k = kernel.copy()
+                k.operands = new_ops
+                result.append(k)
     elif kernel.arity == 2:
         for i, op in enumerate(kernel.operands):
             for e in expand(op, grammar):

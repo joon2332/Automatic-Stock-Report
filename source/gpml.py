@@ -122,12 +122,13 @@ save( '%(writefile)s', 'hyp_opt', 'best_nll', 'nlls');
 """
 
 class OptimizerOutput:
-    def __init__(self, mean_hypers, kernel_hypers, lik_hypers, nll, nlls):
+    def __init__(self, mean_hypers, kernel_hypers, lik_hypers, nll, nlls, gpml_result):
         self.mean_hypers = mean_hypers
         self.kernel_hypers = kernel_hypers
         self.lik_hypers = lik_hypers
         self.nll = nll
         self.nlls = nlls
+        self.gpml_result = gpml_result
 
 def read_outputs(write_file):
     gpml_result = scipy.io.loadmat(write_file)
@@ -138,8 +139,20 @@ def read_outputs(write_file):
     mean_hypers = optimized_hypers['mean'][0, 0].ravel()
     kernel_hypers = optimized_hypers['cov'][0, 0].ravel()
     lik_hypers = optimized_hypers['lik'][0, 0].ravel()
-    
+
     return OptimizerOutput(mean_hypers, kernel_hypers, lik_hypers, nll, nlls)
+
+def my_read_outputs(write_file):
+    gpml_result = scipy.io.loadmat(write_file)
+    optimized_hypers = gpml_result['hyp_opt']
+    nll = gpml_result['best_nll'][0, 0]
+    nlls = gpml_result['nlls'].ravel()
+
+    mean_hypers = 0;
+    kernel_hypers = optimized_hypers['cov'][0, 0].ravel()
+    lik_hypers = 0;
+
+    return OptimizerOutput(mean_hypers, kernel_hypers, lik_hypers, nll, nlls, gpml_result)
 
 # Matlab code to make predictions on a dataset.
 PREDICT_AND_SAVE_CODE = r"""
@@ -150,12 +163,7 @@ a='Load the data, it should contain X and y.'
 load '%(datafile)s'
 X = double(X)
 y = double(y)
-Xtest = double(Xtest)
-ytest = double(ytest)
 
-if size(ytest,1)==1
-    ytest = ytest';
-end
 
 %% Load GPML
 addpath(genpath('%(gpml_path)s'));
@@ -381,4 +389,75 @@ def load_mat(data_file, y_dim=0):
         return data['X'], data['y'][:,y_dim], np.shape(data['X'])[1], data['Xtest'], data['ytest'][:,y_dim]
     else:
         return data['X'], data['y'][:,y_dim], np.shape(data['X'])[1]
+
+def my_load_mat(data_file, y_dim=0):
+    '''
+    Load a Matlab file containing inputs X and outputs y, output as np.arrays
+     - X is (data points) x (input dimensions) array
+     - y is (data points) x (output dimensions) array
+     - y_dim selects which output dimension is returned (10 indexed)
+    Returns tuple (X, y, # data points)
+    '''
+
+    data = scipy.io.loadmat(data_file)
+    #### TODO - this should return a dictionary, not a tuple
+    if 'Xtest' in data:
+        return data['X'], data['y'][:,y_dim], np.shape(data['X'])[1], data['Xtest'], data['ytest'][:,y_dim]
+    else:
+        return data['X'], data['Y'], np.shape(data['X'])[1]
+
+
+MATLAB_SKL_CODE = r"""
+
+load '%(datafile)s'
+X = double(X)
+Y = double(y)
+
+
+addpath(genpath('%(gpml_path)s'));
+
+covfunc_f = {@covSMfast ,10};
+hyp = [];
+M = size(Y,2);
+for i = 1:M
+    hyp = [hyp hyp_SM_init_1D('covSMfast' ,10,X ,zeros(size(Y(:,i))))'];
+end
+
+hyp_scale = [];
+for i = 1:M
+    hyp_scale = [hyp_scale scale_init(Y(:,i))];
+end
+
+covfunc_fS = %(kernel_syntax)s
+
+hyp_fS = %(kernel_params)s
+
+model.N = size(X,1);
+model.M = size(Y,2);
+model.D = size(X,2);
+
+model.num_hyp_fS = numel(hyp_fS);
+model.num_hyp_f = numel(hyp);
+hyp = [hyp_scale hyp_fS hyp];
+sn = log(0.1);
+
+opts = struct('Display', 'off', 'Method', 'lbfgs', 'MaxIter', 250, ...
+    'MaxFunEvals', 250, 'DerivativeCheck', 'off');
+
+
+func = @(x) relational_abcd_with_scale_v2(x,model, sn, covfunc_fS, covfunc_f, X,Y);
+hyp = minFunc(func, hyp', opts);
+
+[nlls, ~, best_nll] = relational_abcd_with_scale_v2(hyp, model, sn, covfunc_fS, covfunc_f, X,Y);
+
+
+
+[scale, hyp_fS, hyp_f] = seperate_hyp_with_scale(model, hyp);
+
+hyp_opt.cov = hyp_fS;
+
+save( '%(writefile)s', 'hyp_opt', 'best_nll', 'nlls', 'hyp_f', 'scale');
+"""
+
+
 

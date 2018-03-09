@@ -1,42 +1,40 @@
-This is part of the [automatic statistician](http://www.automaticstatistician.com/) project
-========
-
-Automatic Bayesian Covariance Discovery
+Relational Automatic Statistician
 =====================
 
-<img src="https://raw.githubusercontent.com/jamesrobertlloyd/gpss-research/master/logo.png" width="700">
+Note that, this software is based on the automatic statistician system, http://www.automaticstatistician.com/index/.
+[https://github.com/jamesrobertlloyd/gpss-research](https://github.com/jamesrobertlloyd/gpss-research).
 
-This repo contains the source code to run the system described in the paper
+This repository provides the source codes for the paper.
 
-[Automatic Construction and Natural-Language Description of Nonparametric Regression Models](http://arxiv.org/pdf/1402.4304.pdf)
-by James Robert Lloyd, David Duvenaud, Roger Grosse, Joshua B. Tenenbaum and Zoubin Ghahramani,
-appearing in [AAAI 2014](http://www.aaai.org/Conferences/AAAI/aaai14.php).
-
+[Automatic Construction of Nonparametric Relational Regression Models for
+Multiple Time Series](http://jmlr.org/proceedings/papers/v48/hwangb16.pdf) 
+by Yunseong Hwang, Anh Tong, Jaesik Choi
+in [ICML-2016](http://icml.cc/2016/)
 
 ### Abstract
 
-This paper presents the beginnings of an automatic statistician, focusing on regression problems. Our system explores an open-ended space of statistical models to discover a good explanation of a data set, and then produces a detailed report with figures and natural-language text. Our approach treats unknown regression functions nonparametrically using Gaussian processes, which has two important consequences. First, Gaussian processes can model functions in terms of high-level properties (e.g. smoothness, trends, periodicity, changepoints). Taken together with the compositional structure of our language of models this allows us to automatically describe functions in simple terms. Second, the use of flexible nonparametric models and a rich language for composing them in an open-ended manner also results in state-of-the-art extrapolation performance evaluated over 13 real time series data sets from various domains.
+Gaussian Processes (GPs) provide a general and analytically tractable way of modeling complex time-varying, nonparametric functions. The Automatic Bayesian Covariance Discovery (ABCD) system constructs natural-language description of time-series data by treating unknown time-series data nonparametrically using GP with a composite covariance kernel function. Unfortunately, learning a composite covariance kernel with a single time-series data set often results in less informative kernel that may not give qualitative, distinctive descriptions of data. We address this challenge by proposing two relational kernel learning methods which can model multiple time-series data sets by finding common, shared causes of changes. We show that the relational kernel learning methods find more accurate models for regression problems on several real-world data sets; US stock data, US house price index data and currency exchange rate data.
 
-Feel free to email the authors with any questions:  
-[James Lloyd](http://mlg.eng.cam.ac.uk/Lloyd/) (jrl44@cam.ac.uk)  
-[David Duvenaud](http://people.seas.harvard.edu/~dduvenaud/) (dduvenaud@seas.harvard.edu)  
-[Roger Grosse](http://www.cs.toronto.edu/~rgrosse/) (rgrosse@cs.toronto.edu)  
+This version of software is developed by Yunseong Hwang, Anh Tong and Jaesik Choi, members of [Statistical Artificial Intelligence Laboratory (SAIL)](http://sail.unist.ac.kr) at Ulsan National Institute of Science and Technology (UNIST), Korea. 
 
+If you have any question, Feel free to email the authors with any questions:  
 
-### Data used in the paper
+[Yunseong Hwang]() (yunseong.hwang@navercorp.com)  
+[Anh Tong]() (anhth@unist.ac.kr)  
+[Jaesik Choi]() (jaesik@unist.ac.kr)  
 
- - [Full time series](https://github.com/jamesrobertlloyd/gpss-research/tree/master/data/tsdlr-renamed)
- - [Extrapolation](https://github.com/jamesrobertlloyd/gpss-research/tree/master/data/tsdlr_9010)
- - [Interpolation](https://github.com/jamesrobertlloyd/gpss-research/tree/master/data/tsdlr_5050)
+### Reference
+- James Robert Lloyd, David Duvenaud, Roger Grosse, Joshua B. Tenenbaum, Zoubin Ghahramani, Automatic Construction and Natural-Language Description of Nonparametric Regression Models, Association for the Advancement of Artificial Intelligence (AAAI) Conference, 2014.
 
+<img src="http://xai.unist.ac.kr/static/img/logos/XAIC_logo.png" width="300" height="100">
 
-Related Repo
-------------------
+# XAI Project 
 
-Source code to run an earlier version of the system, appearing in 
-[Structure Discovery in Nonparametric Regression through Compositional Kernel Search](http://arxiv.org/abs/1302.4922)
-by David Duvenaud, James Robert Lloyd, Roger Grosse, Joshua B. Tenenbaum, Zoubin Ghahramani  
-can be found at
-
-[github.com/jamesrobertlloyd/gp-structure-search/](www.github.com/jamesrobertlloyd/gp-structure-search/).
-
+### **Project Name** 
+> A machine learning and statistical inference framework for explainable artificial intelligence(의사결정 이유를 설명할 수 있는 인간 수준의 학습·추론 프레임워크 개발)
+### **Managed by** 
+> Ministry of Science and ICT/XAIC
+### **Participated Affiliation** 
+> UNIST, Korean Univ., Yonsei Univ., KAIST., AItrics
+### **Web Site** 
+> <http://openXai.org>

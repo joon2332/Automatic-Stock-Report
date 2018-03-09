@@ -153,13 +153,15 @@ def perform_kernel_search(X, y, D, experiment_data_file_name, results_filename, 
                 print model.pretty_print()
         
         # Optimise parameters of and score the kernels
-        new_results = jc.evaluate_models(current_models, X, y, verbose=exp.verbose, local_computation=exp.local_computation,
+        new_results = jc.my_evaluate_models(current_models, X, y, verbose=exp.verbose, local_computation=exp.local_computation,
                                           zip_files=True, max_jobs=exp.max_jobs, iters=exp.iters, random_seed=exp.random_seed,
                                           subset=exp.subset, subset_size=exp.subset_size, full_iters=exp.full_iters, bundle_size=exp.bundle_size)
             
         # Remove models that were optimised to be out of bounds (this is similar to a 0-1 prior)
-        new_results = [a_model for a_model in new_results if not a_model.out_of_bounds(data_shape)]
-        oob_results = [a_model for a_model in new_results if a_model.out_of_bounds(data_shape)]
+        # new_results = [a_model for a_model in new_results if not a_model.out_of_bounds(data_shape)]
+        # oob_results = [a_model for a_model in new_results if a_model.out_of_bounds(data_shape)]
+        new_results = [a_model for a_model in new_results]
+        oob_results = [a_model for a_model in new_results]
         oob_results = sorted(oob_results, key=lambda a_model : GPModel.score(a_model, exp.score), reverse=True)
         oob_sequence.append(oob_results)
         
@@ -225,8 +227,11 @@ def perform_kernel_search(X, y, D, experiment_data_file_name, results_filename, 
                         print >> outfile, result  
                 else:
                     # Only print top k kernels - i.e. those used to seed the next level of the search
+                    i = 0
                     for result in sorted(all_results, key=lambda a_model : GPModel.score(a_model, exp.score))[0:exp.k]:
-                        print >> outfile, result 
+                        print >> outfile, result
+                        scipy.io.savemat(results_filename + 'lvl_' + str(depth) + '_' + str(i) + '.mat1', result.gpml_result)
+                        i += 1
         # Write nan scored kernels to a log file
         with open(results_filename + '.nans', 'w') as outfile:
             outfile.write('Experiment nan results for\n datafile = %s\n\n %s \n\n' \
@@ -428,9 +433,14 @@ def perform_experiment(data_file, output_file, exp):
         X, y, D, Xtest, ytest = gpml.load_mat(data_file)
         prediction_file = os.path.join(exp.results_dir, os.path.splitext(os.path.split(data_file)[-1])[0] + "_predictions.mat")
     else:
-        X, y, D = gpml.load_mat(data_file)
-        
+        X, y, D = gpml.my_load_mat(data_file)
+
+    import time
+    start_time = time.time()
     perform_kernel_search(X, y, D, data_file, output_file, exp)
+    elapse_time = time.time() - start_time
+    print ('Elapsed time: {}'.format(elapse_time))
+
     best_model = parse_results(output_file)
     
     if exp.make_predictions:
