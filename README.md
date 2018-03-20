@@ -35,6 +35,6 @@ If you have any question, Feel free to email the authors with any questions:
 ### **Managed by** 
 > Ministry of Science and ICT/XAIC
 ### **Participated Affiliation** 
-> UNIST, Korean Univ., Yonsei Univ., KAIST., AItrics
+> UNIST, Korea Univ., Yonsei Univ., KAIST., AItrics
 ### **Web Site** 
 > <http://openXai.org>
