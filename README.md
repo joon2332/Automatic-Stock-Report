@@ -23,6 +23,9 @@ If you have any question, Feel free to email the authors with any questions:
 [Anh Tong]() (anhth@unist.ac.kr)  
 [Jaesik Choi]() (jaesik@unist.ac.kr)  
 
+### License
+[Apache License 2.0](https://github.com/OpenXAIProject/Automatic-Stock-Report/blob/master/license.txt)
+
 ### Reference
 - James Robert Lloyd, David Duvenaud, Roger Grosse, Joshua B. Tenenbaum, Zoubin Ghahramani, Automatic Construction and Natural-Language Description of Nonparametric Regression Models, Association for the Advancement of Artificial Intelligence (AAAI) Conference, 2014.
 
